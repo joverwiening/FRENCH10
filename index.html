@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>France Mots — Présentation</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header class="hud">
+        <h1>France Mots</h1>
+        <div class="hud__row">
+          <span id="status">Déplace-toi avec ZQSD ou les flèches</span>
+          <span id="score">Mots: 0</span>
+        </div>
+      </header>
+
+      <canvas id="game" width="960" height="540" aria-label="Jeu 2D"></canvas>
+
+      <div id="start-overlay" class="overlay" role="dialog" aria-modal="true">
+        <div class="overlay__card">
+          <h2>Début</h2>
+          <p>Tu es à Londres.</p>
+          <p>Va en France.</p>
+          <p>Apprends sur Jorin.</p>
+          <p>Flèches pour bouger.</p>
+          <p>Prends tous les souvenirs.</p>
+          <p>Un souvenir est caché hors de France.</p>
+          <button id="start-game">Commencer</button>
+        </div>
+      </div>
+
+      <section class="panel">
+        <h2>Objectif</h2>
+        <p>Attrape les mots flottants pour lancer les phrases de ta présentation.</p>
+        <p class="small">Contrôles : flèches (ou ZQSD) pour bouger.</p>
+        <p class="small">Trouve tous les souvenirs, dont un caché hors de France.</p>
+        <p class="small">Audio jouée en arrière-plan pour ne pas interrompre le jeu.</p>
+        <div class="controls">
+          <button id="toggle-audio">Activer l'audio</button>
+          <button id="toggle-fog" class="secondary">Brouillard: ON</button>
+          <button id="reset">Recommencer</button>
+        </div>
+      </section>
+    </main>
+
+    <script src="game.js"></script>
+  </body>
+</html>
