@@ -150,6 +150,7 @@ function updateScore() {
 
 function scheduleFinishOverlay() {
   if (finishShown) return;
+  if (!gameStarted) return;
   if (collected.size !== mots.length) return;
   if (activeMotAudio > 0) return;
   if (finishTimer) return;
@@ -159,6 +160,7 @@ function scheduleFinishOverlay() {
     if (collected.size === mots.length && activeMotAudio === 0) {
       finishShown = true;
       finishOverlay.classList.remove("hidden");
+      finishOverlay.style.display = "grid";
     }
   }, 1400);
 }
@@ -233,6 +235,10 @@ function playActivationChime() {
 toggleAudioBtn.addEventListener("click", toggleAudio);
 toggleMusicBtn.addEventListener("click", toggleMusic);
 toggleMusicBtn.classList.toggle("secondary", !musicEnabled);
+if (finishOverlay) {
+  finishOverlay.classList.add("hidden");
+  finishOverlay.style.display = "none";
+}
 toggleFogBtn.addEventListener("click", () => {
   fogEnabled = !fogEnabled;
   toggleFogBtn.textContent = fogEnabled ? "Brouillard: ON" : "Brouillard: OFF";
@@ -244,10 +250,11 @@ startGameBtn.addEventListener("click", () => {
   setStatus("Traverse la Manche et trouve des mots.");
   showFloatingHint("Va d'abord à Paris.");
   if (musicEnabled && bgAudio.paused) {
-    bgAudio.volume = bgVolume;
+    bgAudio.volume = 0;
     bgAudio.play().catch(() => {
       setStatus("Clique pour autoriser la musique.");
     });
+    fadeBackground(bgVolume, 1200);
   }
 });
 finishRestartBtn.addEventListener("click", () => {
@@ -265,6 +272,7 @@ resetBtn.addEventListener("click", () => {
     finishTimer = null;
   }
   finishOverlay.classList.add("hidden");
+  finishOverlay.style.display = "none";
   setStatus("Recommencé. Attrape un mot !");
 });
 
