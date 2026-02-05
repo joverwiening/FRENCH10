@@ -4,10 +4,14 @@ const ctx = canvas.getContext("2d");
 const statusEl = document.getElementById("status");
 const scoreEl = document.getElementById("score");
 const toggleAudioBtn = document.getElementById("toggle-audio");
+const toggleMusicBtn = document.getElementById("toggle-music");
 const toggleFogBtn = document.getElementById("toggle-fog");
 const resetBtn = document.getElementById("reset");
 const startOverlay = document.getElementById("start-overlay");
 const startGameBtn = document.getElementById("start-game");
+const floatingHint = document.getElementById("floating-hint");
+const finishOverlay = document.getElementById("finish-overlay");
+const finishRestartBtn = document.getElementById("finish-restart");
 
 const WORLD = {
   width: 2400,
@@ -44,62 +48,70 @@ const mots = [
     text: "Reken",
     xPct: 1474 / 1555,
     yPct: 154 / 2200,
-    audio: "assets/audio/je-mappelle.mp3",
+    audio: "audio/jesuis.m4a",
   },
+  // {
+  //   id: "brighton",
+  //   text: "Brighton",
+  //   xPct: 620 / 1555,
+  //   yPct: 320 / 2200,
+  //   audio: "audio/jmappelle.m4a",
+  // },
   {
     id: "locranon",
     text: "Locranon",
     xPct: 150 / 1555,
     yPct: 743 / 2200,
-    audio: "assets/audio/je-viens.mp3",
+    audio: "audio/jaime1.m4a",
   },
   {
     id: "dominique",
-    text: "dominique",
+    text: "Vouge",
     xPct: 1300 / 1555,
     yPct: 689 / 2200,
-    audio: "assets/audio/jaime-musique.mp3",
+    audio: "audio/films.m4a",
   },
   {
     id: "gif",
-    text: "gif",
+    text: "Gif",
     xPct: 840 / 1555,
     yPct: 732 / 2200,
-    audio: "assets/audio/jaime-sport.mp3",
+    audio: "audio/jmappelle.m4a",
   },
   {
     id: "belcaire",
-    text: "belcaire",
+    text: "Belcaire",
     xPct: 768 / 1555,
     yPct: 1691 / 2200,
-    audio: "assets/audio/jaime-sport.mp3",
+    audio: "audio/boston.m4a",
   },
   {
     id: "laroche",
-    text: "laroche",
+    text: "La Roche",
     xPct: 406 / 1555,
     yPct: 1056 / 2200,
-    audio: "assets/audio/jaime-sport.mp3",
+    audio: "audio/jeparle.m4a",
   },
   {
     id: "schweinebucht",
-    text: "schweinebucht",
+    text: "Schweinebucht",
     xPct: 1294 / 1555,
     yPct: 1636 / 2200,
-    audio: "assets/audio/jaime-sport.mp3",
+    audio: "audio/doctorat.m4a",
   },
   {
     id: "stmalo",
-    text: "J'aime le sport.",
+    text: "St Malo",
     xPct: 400 / 1555,
     yPct: 686 / 2200,
-    audio: "assets/audio/jaime-sport.mp3",
+    audio: "audio/calme.m4a",
   },
 ];
 
 const collected = new Set();
 
-let audioEnabled = false;
+let audioEnabled = true;
+let musicEnabled = true;
 let fogEnabled = true;
 let lastTime = 0;
 let gameStarted = false;
@@ -108,12 +120,47 @@ let fogCanvas = document.createElement("canvas");
 let fogCtx = fogCanvas.getContext("2d");
 const fogRadius = 140;
 
+const bgAudio = new Audio("audio/Elves.mp3");
+const bgVolume = 0.16;
+bgAudio.loop = true;
+bgAudio.volume = bgVolume;
+let activeMotAudio = 0;
+let fadeRaf = null;
+let chimeCtx = null;
+let finishShown = false;
+let finishTimer = null;
+let hintMessage = "";
+let hintUntil = 0;
+
 function setStatus(message) {
   statusEl.textContent = message;
 }
 
+function showFloatingHint(message, duration = 4500) {
+  hintMessage = message;
+  hintUntil = performance.now() + duration;
+  if (floatingHint) {
+    floatingHint.classList.remove("show");
+  }
+}
+
 function updateScore() {
-  scoreEl.textContent = `Mots: ${collected.size}`;
+  scoreEl.textContent = `Mots: ${collected.size}/${mots.length}`;
+}
+
+function scheduleFinishOverlay() {
+  if (finishShown) return;
+  if (collected.size !== mots.length) return;
+  if (activeMotAudio > 0) return;
+  if (finishTimer) return;
+  finishTimer = window.setTimeout(() => {
+    finishTimer = null;
+    if (finishShown) return;
+    if (collected.size === mots.length && activeMotAudio === 0) {
+      finishShown = true;
+      finishOverlay.classList.remove("hidden");
+    }
+  }, 1400);
 }
 
 function toggleAudio() {
@@ -123,7 +170,69 @@ function toggleAudio() {
   setStatus(audioEnabled ? "Audio prêt." : "Audio coupé.");
 }
 
+function fadeBackground(targetVolume, duration = 350) {
+  if (!musicEnabled) return;
+  if (fadeRaf) cancelAnimationFrame(fadeRaf);
+  const startVolume = bgAudio.volume;
+  const start = performance.now();
+
+  const step = (now) => {
+    const t = Math.min(1, (now - start) / duration);
+    bgAudio.volume = startVolume + (targetVolume - startVolume) * t;
+    if (t < 1) {
+      fadeRaf = requestAnimationFrame(step);
+    }
+  };
+
+  fadeRaf = requestAnimationFrame(step);
+}
+
+function toggleMusic() {
+  musicEnabled = !musicEnabled;
+  toggleMusicBtn.textContent = musicEnabled ? "Musique: ON" : "Musique: OFF";
+  toggleMusicBtn.classList.toggle("secondary", !musicEnabled);
+
+  if (musicEnabled) {
+    bgAudio.volume = bgVolume;
+    bgAudio.play().catch(() => {
+      setStatus("Clique pour autoriser la musique.");
+    });
+  } else {
+    bgAudio.pause();
+  }
+}
+
+function playActivationChime() {
+  return new Promise((resolve) => {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) {
+      resolve();
+      return;
+    }
+    try {
+      if (!chimeCtx) chimeCtx = new AudioCtx();
+      const now = chimeCtx.currentTime;
+      const osc = chimeCtx.createOscillator();
+      const gain = chimeCtx.createGain();
+      osc.type = "triangle";
+      osc.frequency.setValueAtTime(880, now);
+      osc.frequency.exponentialRampToValueAtTime(660, now + 0.12);
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.2, now + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.16);
+      osc.connect(gain).connect(chimeCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.18);
+      osc.onended = () => resolve();
+    } catch (error) {
+      resolve();
+    }
+  });
+}
+
 toggleAudioBtn.addEventListener("click", toggleAudio);
+toggleMusicBtn.addEventListener("click", toggleMusic);
+toggleMusicBtn.classList.toggle("secondary", !musicEnabled);
 toggleFogBtn.addEventListener("click", () => {
   fogEnabled = !fogEnabled;
   toggleFogBtn.textContent = fogEnabled ? "Brouillard: ON" : "Brouillard: OFF";
@@ -133,13 +242,29 @@ startGameBtn.addEventListener("click", () => {
   gameStarted = true;
   startOverlay.style.display = "none";
   setStatus("Traverse la Manche et trouve des mots.");
+  showFloatingHint("Va d'abord à Paris.");
+  if (musicEnabled && bgAudio.paused) {
+    bgAudio.volume = bgVolume;
+    bgAudio.play().catch(() => {
+      setStatus("Clique pour autoriser la musique.");
+    });
+  }
+});
+finishRestartBtn.addEventListener("click", () => {
+  window.location.reload();
 });
 resetBtn.addEventListener("click", () => {
   collected.clear();
-  player.x = 400;
-  player.y = 400;
+  player.x = 650;
+  player.y = 250;
   initFog();
   updateScore();
+  finishShown = false;
+  if (finishTimer) {
+    window.clearTimeout(finishTimer);
+    finishTimer = null;
+  }
+  finishOverlay.classList.add("hidden");
   setStatus("Recommencé. Attrape un mot !");
 });
 
@@ -153,10 +278,23 @@ window.addEventListener("keyup", (event) => {
 
 function playAudio(src) {
   if (!audioEnabled) return;
-  const audio = new Audio(src);
-  audio.volume = 0.9;
-  audio.play().catch(() => {
-    setStatus("Clique sur le bouton audio pour autoriser la lecture.");
+  if (musicEnabled && !bgAudio.paused) {
+    fadeBackground(0.08, 200);
+  }
+  playActivationChime().then(() => {
+    const audio = new Audio(src);
+    audio.volume = 1.0;
+    activeMotAudio += 1;
+    audio.addEventListener("ended", () => {
+      activeMotAudio = Math.max(0, activeMotAudio - 1);
+      if (activeMotAudio === 0 && musicEnabled && !bgAudio.paused) {
+        fadeBackground(bgVolume, 500);
+      }
+      scheduleFinishOverlay();
+    });
+    audio.play().catch(() => {
+      setStatus("Clique sur le bouton audio pour autoriser la lecture.");
+    });
   });
 }
 
@@ -214,6 +352,7 @@ function update(delta) {
       updateScore();
       playAudio(mot.audio);
       setStatus(mot.text);
+      scheduleFinishOverlay();
     }
   }
 }
@@ -251,10 +390,36 @@ function drawPlayer(camera) {
   if (playerLoaded) {
     ctx.drawImage(playerImage, x - 24, y - 24, 48, 48);
   } else {
+    // ctx.fillStyle = "rgba(246, 236, 214, 0.95)";
     ctx.fillStyle = "#ffcc4d";
     ctx.beginPath();
     ctx.arc(x, y, player.radius, 0, Math.PI * 2);
     ctx.fill();
+  }
+
+  ctx.fillStyle = "#2b2418";
+  ctx.font = "16px 'Georgia', 'Times New Roman', serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("Toi", x, y - 0);
+
+  if (hintMessage && performance.now() < hintUntil) {
+    ctx.font = "14px 'Georgia', 'Times New Roman', serif";
+    const paddingX = 10;
+    const paddingY = 6;
+    const textWidth = ctx.measureText(hintMessage).width;
+    const boxWidth = textWidth + paddingX * 2;
+    const boxHeight = 22 + paddingY;
+    const boxX = x - boxWidth / 2;
+    const boxY = y - 62;
+    ctx.fillStyle = "rgba(246, 236, 214, 0.95)";
+    ctx.strokeStyle = "#c9b89a";
+    ctx.lineWidth = 2;
+    ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
+    ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
+    ctx.fillStyle = "#2b2418";
+    ctx.textBaseline = "middle";
+    ctx.fillText(hintMessage, x, boxY + boxHeight / 2);
   }
 }
 
@@ -265,7 +430,7 @@ function drawMot(mot, camera) {
   if (x < -100 || y < -100 || x > canvas.width + 100 || y > canvas.height + 100) return;
 
   ctx.fillStyle = collected.has(mot.id)
-    ? "rgba(246, 236, 214, 0.95)"
+    ? "rgba(218, 206, 182, 0.95)"
     : "rgba(246, 236, 214, 0.95)";
   ctx.beginPath();
   ctx.ellipse(x, y, 70, 28, 0, 0, Math.PI * 2);

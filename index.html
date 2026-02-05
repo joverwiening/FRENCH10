@@ -16,29 +16,42 @@
         </div>
       </header>
 
-      <canvas id="game" width="960" height="540" aria-label="Jeu 2D"></canvas>
+      <div class="game-wrap">
+        <canvas id="game" width="960" height="540" aria-label="Jeu 2D"></canvas>
+        <div id="floating-hint" class="floating-hint" aria-live="polite"></div>
+      </div>
 
       <div id="start-overlay" class="overlay" role="dialog" aria-modal="true">
         <div class="overlay__card">
           <h2>Début</h2>
           <p>Tu es à Londres.</p>
           <p>Va en France.</p>
-          <p>Apprends sur Jorin.</p>
-          <p>Flèches pour bouger.</p>
-          <p>Prends tous les souvenirs.</p>
-          <p>Un souvenir est caché hors de France.</p>
+          <p>Va aux lieux pour écouter l'audio.</p>
+          <p>Flèches / ZQSD pour bouger.</p>
+          <p>Les lieux ont un lien avec Jorin.</p>
           <button id="start-game">Commencer</button>
+        </div>
+      </div>
+
+      <div id="finish-overlay" class="overlay hidden" role="dialog" aria-modal="true">
+        <div class="overlay__card">
+          <h2>Bravo !</h2>
+          <p>Tu as tout trouvé.</p>
+          <p>Tu connais Jorin.</p>
+          <button id="finish-restart">Rejouer</button>
         </div>
       </div>
 
       <section class="panel">
         <h2>Objectif</h2>
-        <p>Attrape les mots flottants pour lancer les phrases de ta présentation.</p>
+        <p>Va aux lieux pour écouter l'audio.</p>
+        <p class="small">Les lieux ont un lien avec Jorin.</p>
         <p class="small">Contrôles : flèches (ou ZQSD) pour bouger.</p>
-        <p class="small">Trouve tous les souvenirs, dont un caché hors de France.</p>
-        <p class="small">Audio jouée en arrière-plan pour ne pas interrompre le jeu.</p>
+        <p class="small">Trouve tous les souvenirs (un est hors de France).</p>
+        <p class="small">L'audio continue pendant le jeu.</p>
         <div class="controls">
           <button id="toggle-audio">Activer l'audio</button>
+          <button id="toggle-music">Musique: ON</button>
           <button id="toggle-fog" class="secondary">Brouillard: ON</button>
           <button id="reset">Recommencer</button>
         </div>

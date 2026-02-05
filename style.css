@@ -47,12 +47,37 @@ body {
   font-size: 0.95rem;
 }
 
+.game-wrap {
+  position: relative;
+}
+
 #game {
   width: 100%;
   background: #d9d0b9;
   border: 3px solid var(--border);
   border-radius: 6px;
   box-shadow: none;
+  display: block;
+}
+
+.floating-hint {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(246, 236, 214, 0.95);
+  border: 2px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 12px;
+  color: var(--text);
+  font-size: 0.95rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms ease;
+}
+
+.floating-hint.show {
+  opacity: 1;
 }
 
 .overlay {
@@ -62,6 +87,10 @@ body {
   place-items: center;
   background: rgba(32, 27, 18, 0.45);
   z-index: 10;
+}
+
+.overlay.hidden {
+  display: none;
 }
 
 .overlay__card {
