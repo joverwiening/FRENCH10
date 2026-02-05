@@ -136,6 +136,16 @@ body {
   font-size: 0.9rem;
 }
 
+.panel .tiny {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.panel .tiny a {
+  color: var(--muted);
+  text-decoration: underline;
+}
+
 .controls {
   display: flex;
   gap: 10px;

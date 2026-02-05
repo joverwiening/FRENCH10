@@ -131,6 +131,7 @@ let finishShown = false;
 let finishTimer = null;
 let hintMessage = "";
 let hintUntil = 0;
+let musicStarted = false;
 
 function setStatus(message) {
   statusEl.textContent = message;
@@ -187,6 +188,18 @@ function fadeBackground(targetVolume, duration = 350) {
   };
 
   fadeRaf = requestAnimationFrame(step);
+}
+
+function ensureMusicStart() {
+  if (!musicEnabled || musicStarted) return;
+  musicStarted = true;
+  bgAudio.volume = 0;
+  bgAudio.play().then(() => {
+    fadeBackground(bgVolume, 1200);
+  }).catch(() => {
+    musicStarted = false;
+    setStatus("Clique pour autoriser la musique.");
+  });
 }
 
 function toggleMusic() {
@@ -249,13 +262,7 @@ startGameBtn.addEventListener("click", () => {
   startOverlay.style.display = "none";
   setStatus("Traverse la Manche et trouve des mots.");
   showFloatingHint("Va d'abord à Paris.");
-  if (musicEnabled && bgAudio.paused) {
-    bgAudio.volume = 0;
-    bgAudio.play().catch(() => {
-      setStatus("Clique pour autoriser la musique.");
-    });
-    fadeBackground(bgVolume, 1200);
-  }
+  ensureMusicStart();
 });
 finishRestartBtn.addEventListener("click", () => {
   window.location.reload();
@@ -278,7 +285,12 @@ resetBtn.addEventListener("click", () => {
 
 window.addEventListener("keydown", (event) => {
   keys.add(event.key.toLowerCase());
+  ensureMusicStart();
 });
+
+window.addEventListener("pointerdown", () => {
+  ensureMusicStart();
+}, { once: true });
 
 window.addEventListener("keyup", (event) => {
   keys.delete(event.key.toLowerCase());
